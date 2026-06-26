@@ -23,7 +23,7 @@ The platform performs real-time duplicate detection during patient registration 
 
 Instead of relying purely on manual verification or post-processing cleanup, Lumiere shifts identity resolution toward proactive duplicate prevention while maintaining privacy-first processing principles.
 
-Built by a team of 5 first-year engineering students.
+Built by a team of 4 first-year engineering students.
 
 ---
 
@@ -204,7 +204,7 @@ The system is designed around:
 
 ### Team Size
 
-5 Members
+4 Members
 
 ### My Contribution
 
