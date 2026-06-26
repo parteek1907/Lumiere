@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: clinical_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: clinical_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: hackathon123
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d clinical_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: clinical_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:hackathon123@postgres:5432/clinical_db
+      # List the URLs your frontend runs on (comma-separated)
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost:4200
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: clinical_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@hackathon.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
