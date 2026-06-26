@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pandas
+thefuzz
+python-Levenshtein
+python-multipart
+groq
+python-dotenv
