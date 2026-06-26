@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Send } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { identifyRecords, type LumiereIdentifyResult } from '@/lib/api';
 
-export default function QueryPage() {
+function QueryContent() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [result, setResult] = useState<LumiereIdentifyResult | null>(null);
@@ -175,5 +175,13 @@ export default function QueryPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function QueryPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-neutral-500">Loading...</div>}>
+      <QueryContent />
+    </Suspense>
   );
 }

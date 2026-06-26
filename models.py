@@ -144,6 +144,7 @@ class FHIRPatient(Base):
         back_populates="record_b",
     )
     mpi_links = relationship("MPISourceLink", back_populates="source_patient")
+    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
 
 
 # ------------------------------------------------------------------
@@ -414,3 +415,37 @@ class MLTrainingFeature(Base):
     )
 
     candidate = relationship("EntityResolutionCandidate", back_populates="ml_features")
+
+
+# ------------------------------------------------------------------
+# TABLE 12: appointments
+# ------------------------------------------------------------------
+class Appointment(Base):
+    __tablename__ = "appointments"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('SCHEDULED','COMPLETED','CANCELED','NO_SHOW')",
+            name="ck_appointment_status",
+        ),
+        {"comment": "Calendar appointments for patients"},
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")
+    )
+    patient_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("fhir_patients.id", ondelete="CASCADE")
+    )
+    clinician_name: Mapped[Optional[str]] = mapped_column(String(100))
+    title: Mapped[Optional[str]] = mapped_column(String(200))
+    appointment_date: Mapped[Optional[date]] = mapped_column(Date)
+    appointment_time: Mapped[Optional[str]] = mapped_column(String(10)) # e.g. "09:30 AM"
+    status: Mapped[Optional[str]] = mapped_column(
+        String(20), server_default=text("'SCHEDULED'")
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=text("NOW()")
+    )
+
+    patient = relationship("FHIRPatient", back_populates="appointments")

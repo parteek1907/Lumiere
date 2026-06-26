@@ -117,6 +117,18 @@ export interface SourceSystem {
   created_at: string;
 }
 
+export interface Appointment {
+  id: string;
+  patient_id: string;
+  clinician_name: string | null;
+  title: string | null;
+  appointment_date: string | null;
+  appointment_time: string | null;
+  status: string | null;
+  notes?: string | null;
+  created_at: string;
+}
+
 export interface DuplicateStats {
   total: number;
   high_confidence: number;
@@ -243,6 +255,20 @@ export async function getAuditLog() {
 
 export async function getIngestionJobs() {
   return api('/api/ingestion-jobs');
+}
+
+// ── Appointments endpoints ───────────────────────────────────────────────────
+
+export async function fetchAppointments(): Promise<Appointment[]> {
+  return api<Appointment[]>('/api/appointments');
+}
+
+export async function createAppointment(data: Partial<Appointment>): Promise<Appointment> {
+  return api<Appointment>('/api/appointments', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
 }
 
 // ── Legacy compat wrappers (used by old components) ──────────────────────────

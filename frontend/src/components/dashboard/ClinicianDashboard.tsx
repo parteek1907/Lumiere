@@ -2,19 +2,69 @@
 
 import { 
   Search, Bell, MessageCircle, MoreHorizontal, Activity, ChevronDown, ChevronLeft, ChevronRight,
-  TrendingUp, TrendingDown, Eye, Stethoscope, Heart
+  TrendingUp, TrendingDown, Eye, Stethoscope, Heart, AlertTriangle
 } from 'lucide-react';
-import { useState } from 'react';
-
-const PATIENTS = [
-  { initials: 'SM', name: 'Stacy Mitchell', type: 'Weekly Visit', time: '9:15 AM', color: 'bg-pink-100 text-pink-600' },
-  { initials: 'AD', name: 'Amy Dunham', type: 'Routine Checkup', time: '9:30 AM', color: 'bg-blue-100 text-blue-600' },
-  { initials: 'DJ', name: 'Demi Joan', type: 'Report', time: '9:50 AM', color: 'bg-emerald-100 text-emerald-600' },
-  { initials: 'SM', name: 'Susan Myers', type: 'Weekly Visit', time: '10:15 AM', color: 'bg-pink-100 text-pink-600' },
-];
+import { useState, useEffect } from 'react';
+import { fetchAppointments, getDuplicates, Appointment, DuplicateCandidate } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 
 export default function ClinicianDashboard() {
   const [search, setSearch] = useState('');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [appts, dups] = await Promise.all([
+          fetchAppointments(),
+          getDuplicates()
+        ]);
+        setAppointments(appts);
+        setDuplicates(dups);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
+  const getInitials = (given?: string | null, family?: string | null) => {
+    return `${given?.charAt(0) || ''}${family?.charAt(0) || ''}`.toUpperCase() || '?';
+  };
+
+  // Get appointments for the current month
+  const today = new Date();
+  const currentMonthAppts = appointments.filter(a => {
+    if (!a.appointment_date) return false;
+    const d = new Date(a.appointment_date);
+    return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+  });
+
+  const getDaysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
+  const getFirstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+
+  const daysInMonth = getDaysInMonth(today.getFullYear(), today.getMonth());
+  const firstDay = getFirstDayOfMonth(today.getFullYear(), today.getMonth());
+
+  const days = Array.from({ length: 42 }, (_, i) => {
+    const dayNum = i - firstDay + 1;
+    if (dayNum > 0 && dayNum <= daysInMonth) return dayNum;
+    return null;
+  });
+
+  const hasAppointment = (day: number) => {
+    return currentMonthAppts.some(a => {
+      if (!a.appointment_date) return false;
+      const d = new Date(a.appointment_date);
+      // Depending on timezone, this could be off by one, but for simple visualization:
+      return parseInt(a.appointment_date.split('-')[2]) === day;
+    });
+  };
 
   return (
     <div className="w-full max-w-[1400px] mx-auto pb-12 animate-in fade-in duration-500 pt-6 px-6">
@@ -35,18 +85,6 @@ export default function ClinicianDashboard() {
         </div>
         
         <div className="flex items-center gap-6">
-          <MessageCircle className="text-gray-500 hover:text-gray-700 cursor-pointer" />
-          <div className="relative">
-             <Bell className="text-gray-500 hover:text-gray-700 cursor-pointer" />
-             <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></div>
-          </div>
-          <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100 cursor-pointer">
-             <div className="w-8 h-8 bg-gray-200 rounded-full overflow-hidden">
-                {/* Placeholder Avatar */}
-                <img src="https://i.pravatar.cc/150?img=11" alt="Dr. Kim" className="w-full h-full object-cover" />
-             </div>
-             <span className="font-semibold text-gray-700 text-sm">Dr. Kim</span>
-          </div>
         </div>
       </div>
 
@@ -60,125 +98,109 @@ export default function ClinicianDashboard() {
             Good Morning <span className="text-brand-blue">Dr. Kim!</span>
           </h1>
 
-          {/* Banner: Visits for Today */}
+          {/* Banner: Today's Focus */}
           <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-r from-[#a5f3fc] to-[#bfdbfe] p-8 min-h-[280px] shadow-sm flex flex-col justify-between">
             <div className="relative z-10">
-               <h2 className="text-gray-800 font-semibold text-lg mb-1">Visits for Today</h2>
-               <div className="text-[5rem] font-bold text-gray-900 leading-none mb-8 tracking-tight">104</div>
+               <h2 className="text-gray-800 font-semibold text-lg mb-1">Today's Focus</h2>
+               <div className="text-[5rem] font-bold text-gray-900 leading-none mb-8 tracking-tight">{loading ? '...' : (duplicates.length + currentMonthAppts.length)}</div>
                
                <div className="flex gap-4">
                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 min-w-[140px] shadow-sm">
-                   <p className="text-gray-600 text-sm font-semibold mb-2">New Patients</p>
+                   <p className="text-gray-600 text-sm font-semibold mb-2">Duplicate Records</p>
                    <div className="flex items-end justify-between">
-                     <span className="text-3xl font-bold text-gray-800">40</span>
-                     <span className="flex items-center text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-1 rounded-md">
-                       51% <TrendingUp size={14} className="ml-1" />
+                     <span className="text-3xl font-bold text-gray-800">{loading ? '-' : duplicates.length}</span>
+                     <span className="flex items-center text-xs font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-md">
+                       Needs Review
                      </span>
                    </div>
                  </div>
                  <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 min-w-[140px] shadow-sm">
-                   <p className="text-gray-600 text-sm font-semibold mb-2">Old Patients</p>
+                   <p className="text-gray-600 text-sm font-semibold mb-2">Appointments</p>
                    <div className="flex items-end justify-between">
-                     <span className="text-3xl font-bold text-gray-800">64</span>
-                     <span className="flex items-center text-xs font-bold text-red-500 bg-red-100 px-2 py-1 rounded-md">
-                       20% <TrendingDown size={14} className="ml-1" />
+                     <span className="text-3xl font-bold text-gray-800">{loading ? '-' : currentMonthAppts.length}</span>
+                     <span className="flex items-center text-xs font-bold text-blue-500 bg-blue-100 px-2 py-1 rounded-md">
+                       This Month
                      </span>
                    </div>
                  </div>
                </div>
-            </div>
-            {/* Placeholder for Doctor Image on the right side */}
-            <div className="absolute bottom-0 right-0 h-full w-[40%] flex items-end justify-end pointer-events-none">
-              <img src="https://i.pravatar.cc/500?img=68" alt="Doctor" className="object-cover h-[110%] object-bottom opacity-90" style={{ mixBlendMode: 'luminosity' }} />
             </div>
           </div>
 
           {/* Bottom Left Grid: Patient List & Consultation */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Patient List */}
+            {/* Pending Reviews */}
             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Patient List</h3>
+                <h3 className="text-lg font-bold text-gray-800">Pending Reviews</h3>
                 <div className="flex items-center text-gray-500 text-sm cursor-pointer hover:text-gray-700">
                    Today <ChevronDown size={16} className="ml-1" />
                 </div>
               </div>
               
               <div className="space-y-4">
-                {PATIENTS.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between group hover:bg-gray-50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${p.color}`}>
-                        {p.initials}
+                {loading ? (
+                  <p className="text-sm text-gray-400">Loading duplicates...</p>
+                ) : duplicates.length === 0 ? (
+                  <p className="text-sm text-gray-400">No pending reviews found.</p>
+                ) : (
+                  duplicates.slice(0, 4).map((dup, i) => (
+                    <div 
+                      key={dup.id} 
+                      onClick={() => router.push(`/resolution`)}
+                      className="flex items-center justify-between group hover:bg-gray-50 p-2 -mx-2 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm ${i % 2 === 0 ? 'bg-amber-100 text-amber-600' : 'bg-pink-100 text-pink-600'}`}>
+                          {getInitials(dup.record_a?.given_name, dup.record_a?.family_name)}
+                        </div>
+                        <div>
+                          <p className="text-gray-800 font-bold group-hover:text-brand-blue transition-colors">
+                            {dup.record_a?.given_name} {dup.record_a?.family_name}
+                          </p>
+                          <p className="text-xs text-brand-blue font-medium mt-0.5">Duplicate Candidate</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-800 font-bold group-hover:text-brand-blue transition-colors">{p.name}</p>
-                        <p className="text-xs text-brand-blue font-medium mt-0.5">{p.type}</p>
+                      <div className="text-xs font-bold text-brand-blue bg-blue-50 px-3 py-1.5 rounded-lg">
+                        {Math.round((dup.composite_score || 0) * 100)}% Match
                       </div>
                     </div>
-                    <div className="text-xs font-bold text-pink-500 bg-pink-100 px-3 py-1.5 rounded-lg">
-                      {p.time}
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
-            {/* Consultation Card */}
+            {/* Recent Activity Timeline */}
             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Consultation</h3>
+                <h3 className="text-lg font-bold text-gray-800">Recent Activity</h3>
               </div>
 
               <div className="border border-blue-100 rounded-[1.5rem] p-5 relative overflow-hidden">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold bg-teal-100 text-teal-700 text-lg">
-                      DW
-                    </div>
-                    <div>
-                      <h4 className="text-md font-bold text-gray-800">Denzel White</h4>
-                      <p className="text-xs text-gray-400 font-medium">Male - 28 Years 3 Months</p>
-                    </div>
+                <div className="relative border-l-2 border-gray-100 ml-2 space-y-6">
+                  
+                  <div className="relative pl-6">
+                    <div className="absolute w-3 h-3 bg-gray-300 rounded-full -left-[7px] top-1"></div>
+                    <p className="text-xs text-gray-400 font-bold mb-1">08:20 AM</p>
+                    <p className="text-sm font-bold text-gray-800">Patient Registered</p>
+                    <p className="text-xs text-brand-blue font-medium mt-1">General Hospital</p>
                   </div>
-                  <MoreHorizontal className="text-gray-300 cursor-pointer hover:text-gray-500" />
-                </div>
 
-                <div className="flex justify-between mb-6 border-b border-gray-100 pb-6 px-2">
-                  <div className="flex flex-col items-center gap-2">
-                    <Activity size={24} className="text-brand-blue" />
-                    <span className="text-xs font-bold text-gray-700">Fever</span>
+                  <div className="relative pl-6">
+                    <div className="absolute w-3 h-3 bg-amber-400 rounded-full -left-[7px] top-1"></div>
+                    <p className="text-xs text-gray-400 font-bold mb-1">08:21 AM</p>
+                    <p className="text-sm font-bold text-gray-800">Duplicate Detected</p>
+                    <p className="text-xs text-brand-blue font-medium mt-1">Flagged for manual review.</p>
                   </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <Stethoscope size={24} className="text-brand-blue" />
-                    <span className="text-xs font-bold text-gray-700">Cough</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2">
-                    <Heart size={24} className="text-brand-blue" />
-                    <span className="text-xs font-bold text-gray-700">Heart Burn</span>
-                  </div>
-                </div>
 
-                <div className="space-y-4 text-xs">
-                  <div className="grid grid-cols-[80px,1fr] gap-4">
-                    <span className="text-gray-800 font-bold">Last Checked</span>
-                    <p className="text-gray-500 font-medium">
-                      <span className="text-gray-800 font-bold">Dr Everly</span> on 21 April 2026 Prescription <span className="text-brand-blue cursor-pointer hover:underline">#2J9B3KTO</span>
-                    </p>
+                  <div className="relative pl-6">
+                    <div className="absolute w-3 h-3 bg-brand-blue rounded-full -left-[7px] top-1"></div>
+                    <p className="text-xs text-gray-400 font-bold mb-1">09:05 AM</p>
+                    <p className="text-sm font-bold text-gray-800">Doctor Approved Merge</p>
+                    <p className="text-xs text-brand-blue font-medium mt-1">Golden Record Updated.</p>
                   </div>
-                  <div className="grid grid-cols-[80px,1fr] gap-4">
-                    <span className="text-gray-800 font-bold">Observation</span>
-                    <p className="text-gray-500 font-medium">High fever and cough at normal hemoglobin levels.</p>
-                  </div>
-                  <div className="grid grid-cols-[80px,1fr] gap-4">
-                    <span className="text-gray-800 font-bold">Prescription</span>
-                    <div className="text-gray-500 font-medium space-y-1">
-                      <p>Paracetamol - 2 times a day</p>
-                      <p>Dizepam - Day and Night before meal</p>
-                      <p>Wikoryl</p>
-                    </div>
-                  </div>
+
                 </div>
               </div>
 
@@ -197,14 +219,14 @@ export default function ClinicianDashboard() {
              </div>
              
              <div className="flex items-center justify-between mb-6 text-sm font-semibold text-gray-700">
-                <span>September 2026</span>
+                <span>{today.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
                 <div className="flex gap-2">
                    <ChevronLeft size={16} className="text-gray-300 cursor-pointer" />
                    <ChevronRight size={16} className="text-gray-400 cursor-pointer" />
                 </div>
              </div>
 
-             {/* Mock Calendar Grid */}
+             {/* Live Calendar Grid */}
              <div className="grid grid-cols-7 text-center gap-y-4 text-xs font-medium">
                 <div className="text-gray-400 mb-2">SUN</div>
                 <div className="text-gray-400 mb-2">MON</div>
@@ -214,52 +236,35 @@ export default function ClinicianDashboard() {
                 <div className="text-gray-400 mb-2">FRI</div>
                 <div className="text-gray-400 mb-2">SAT</div>
                 
-                <div className="text-gray-300"></div>
-                <div className="text-gray-300"></div>
-                <div className="text-gray-300"></div>
-                <div className="text-gray-300"></div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">1</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">2</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">3</div>
-                
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">4</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">5</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">6</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">7</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer relative">
-                  8
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-500 rounded-full"></div>
-                </div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">9</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">10</div>
-                
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">11</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">12</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">13</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer relative">
-                  14
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-red-500 rounded-full"></div>
-                </div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">15</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">16</div>
-                <div className="text-gray-700 hover:text-brand-blue cursor-pointer">17</div>
+                {days.map((day, idx) => (
+                  <div key={idx} className={`text-gray-700 hover:text-brand-blue cursor-pointer relative ${!day ? 'invisible' : ''}`}>
+                    {day}
+                    {day && hasAppointment(day) && (
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-brand-blue rounded-full shadow-sm"></div>
+                    )}
+                  </div>
+                ))}
              </div>
-          </div>
-
-          {/* Upcoming */}
-          <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
-             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Upcoming</h3>
-                <span className="text-xs font-bold text-brand-blue hover:underline cursor-pointer">View All</span>
-             </div>
-             <div className="bg-blue-50/50 rounded-2xl p-4 flex gap-4 hover:bg-blue-50 transition-colors cursor-pointer group">
-                <div className="w-12 h-12 rounded-2xl bg-blue-400 text-white flex items-center justify-center font-bold text-lg group-hover:scale-105 transition-transform shadow-sm">
-                  M
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-gray-800">Monthly doctor's meet</h4>
-                  <p className="text-[11px] text-gray-400 font-medium mt-1">8 Sept, 2026 | 04:00 PM</p>
-                </div>
+             
+             {/* List of upcoming appointments */}
+             <div className="mt-8 space-y-3">
+               {loading ? (
+                 <p className="text-xs text-gray-400 text-center">Loading...</p>
+               ) : currentMonthAppts.length === 0 ? (
+                 <p className="text-xs text-gray-400 text-center">No appointments scheduled.</p>
+               ) : (
+                 currentMonthAppts.slice(0, 3).map(appt => (
+                   <div key={appt.id} className="bg-gray-50 rounded-xl p-3 flex justify-between items-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => router.push(`/patients/${appt.patient_id}`)}>
+                     <div>
+                       <p className="text-sm font-bold text-gray-800">{appt.title || 'Consultation'}</p>
+                       <p className="text-[11px] text-gray-500 font-medium mt-0.5">{appt.appointment_date} {appt.appointment_time}</p>
+                     </div>
+                     <div className="text-[10px] font-bold text-white bg-brand-blue px-2 py-1 rounded-md shadow-sm">
+                       {appt.status}
+                     </div>
+                   </div>
+                 ))
+               )}
              </div>
           </div>
 
@@ -275,11 +280,9 @@ export default function ClinicianDashboard() {
              </h4>
              
              <div className="h-32 bg-teal-500 rounded-2xl overflow-hidden relative">
-                {/* Mock Image Representation */}
                 <div className="absolute inset-0 opacity-80" style={{
                   backgroundImage: 'radial-gradient(circle at top right, #0d9488 0%, #14b8a6 100%)'
                 }}></div>
-                {/* Add a subtle pills abstraction */}
                 <div className="absolute bottom-4 right-4 flex gap-2">
                    <div className="w-8 h-4 rounded-full bg-orange-400 shadow-sm border border-orange-300 rotate-45"></div>
                    <div className="w-8 h-4 rounded-full bg-white/80 shadow-sm border border-white/50 -rotate-12"></div>

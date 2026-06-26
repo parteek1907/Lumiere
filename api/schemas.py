@@ -75,6 +75,28 @@ class MedicationOut(_Base):
     created_at: datetime
 
 
+# ── Appointments ─────────────────────────────────────────────────────────────
+class AppointmentOut(_Base):
+    id: uuid.UUID
+    patient_id: Optional[uuid.UUID]
+    clinician_name: Optional[str]
+    title: Optional[str]
+    appointment_date: Optional[date]
+    appointment_time: Optional[str]
+    status: Optional[str]
+    notes: Optional[str]
+    created_at: datetime
+
+class AppointmentIn(BaseModel):
+    patient_id: Optional[uuid.UUID] = None
+    clinician_name: Optional[str] = None
+    title: Optional[str] = None
+    appointment_date: Optional[date] = None
+    appointment_time: Optional[str] = None
+    status: Optional[str] = "SCHEDULED"
+    notes: Optional[str] = None
+
+
 # ── Entity Resolution Candidates (Duplicate Pairs) ───────────────────────────
 class DuplicateCandidateOut(_Base):
     id: uuid.UUID
@@ -136,6 +158,14 @@ class GoldenRecordUpdateIn(BaseModel):
     resolution_status: Optional[str] = None   # AUTO_MATCHED | MANUAL_REVIEW | CONFIRMED | REJECTED
     resolved_by: Optional[str] = None
     notes: Optional[str] = None
+
+
+class ManualEntryIn(BaseModel):
+    date: Optional[str] = None
+    visitType: Optional[str] = None
+    notes: Optional[str] = None
+    diagnosis: Optional[str] = None
+    medications: Optional[str] = None
 
 
 # ── Ingestion request schemas ──────────────────────────────────────────────────

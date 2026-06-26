@@ -1,24 +1,8 @@
 'use client';
 
 import {
-  User,
-  Settings as SettingsIcon,
-  Bell,
-  Shield,
-  Eye,
-  Mail,
-  ClipboardList,
-  Download,
-  Search,
-  ChevronLeft,
-  ChevronRight,
-  Trash2,
-  AlertTriangle,
-  Database,
-  Plus,
-  FileUp,
-  CheckCircle,
-  X,
+  User, Settings as SettingsIcon, Bell, Shield, Eye, Mail, ClipboardList, Download, Search,
+  Trash2, AlertTriangle, Database, Plus, FileUp, CheckCircle, X,
 } from 'lucide-react';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { cn } from '@/lib/cn';
@@ -40,13 +24,6 @@ const mockAuditLog: AuditEntry[] = [
   { id: '3', timestamp: '2025-01-15T13:45:00Z', user: 'Dr. Parteek', action: 'Match confirmed', target: 'DUP-4821', detail: 'Records merged — composite score 91%', category: 'data' },
   { id: '4', timestamp: '2025-01-15T12:10:00Z', user: 'Dr. Parteek', action: 'Login', target: 'Session 8a3f', detail: 'IP 192.168.1.42 — Chrome/Windows', category: 'auth' },
   { id: '5', timestamp: '2025-01-15T11:55:00Z', user: 'System', action: 'Backup completed', target: 'clinical_db', detail: 'Full snapshot — 2.3 GB', category: 'system' },
-  { id: '6', timestamp: '2025-01-14T16:20:00Z', user: 'Dr. Parteek', action: 'Patient created', target: 'Jane Doe (a2c1f3e8)', detail: 'Manual entry — 6 fields populated', category: 'data' },
-  { id: '7', timestamp: '2025-01-14T15:00:00Z', user: 'System', action: 'FHIR validation warning', target: 'LabCorp feed', detail: '2 records missing required date field', category: 'system' },
-  { id: '8', timestamp: '2025-01-14T10:30:00Z', user: 'Dr. Parteek', action: 'PDF uploaded', target: 'Chad Abbott (89569dfe)', detail: 'Lab report — OCR extracted 5 fields', category: 'data' },
-  { id: '9', timestamp: '2025-01-13T09:00:00Z', user: 'Admin', action: 'Privacy policy updated', target: 'GDPR settings', detail: 'Retention period changed to 7 years', category: 'privacy' },
-  { id: '10', timestamp: '2025-01-13T08:15:00Z', user: 'Dr. Parteek', action: 'Voice record saved', target: 'Patient 42f9a1b2', detail: 'Transcription — 245 words, FHIR R4 valid', category: 'data' },
-  { id: '11', timestamp: '2025-01-12T17:00:00Z', user: 'System', action: 'Duplicate flagged', target: 'DUP-4822', detail: 'Composite score 73% — needs review', category: 'system' },
-  { id: '12', timestamp: '2025-01-12T14:30:00Z', user: 'Dr. Parteek', action: 'Match dismissed', target: 'DUP-4819', detail: 'False positive — different patients', category: 'data' },
 ];
 
 const PAGE_SIZE = 8;
@@ -80,8 +57,8 @@ export default function SettingsPage() {
     const role = localStorage.getItem('role') || 'doctor';
     const displayRole = role === 'patient' ? 'Patient' : 'Clinician';
     setProfile({
-      fullName: stored.fullName || (role === 'patient' ? 'John Doe' : 'Dr. Parteek'),
-      email: stored.email || '',
+      fullName: stored.fullName || (role === 'patient' ? 'John Doe' : 'Dr. Kim'),
+      email: stored.email || 'dr.kim@lumiere.com',
       role: displayRole,
       institution: stored.institution || 'Lumiere Health',
     });
@@ -104,18 +81,11 @@ export default function SettingsPage() {
   const [connectedSources, setConnectedSources] = useState<ConnectedSource[]>([
     { id: '1', name: 'EPIC EHR', type: 'rest_api', status: 'active', lastSync: '2025-01-15T14:28:00Z', recordCount: 412 },
     { id: '2', name: 'LabCorp Feed', type: 'hl7', status: 'active', lastSync: '2025-01-15T10:00:00Z', recordCount: 187 },
-    { id: '3', name: 'PDF Archive', type: 'csv', status: 'inactive', lastSync: '2025-01-10T09:00:00Z', recordCount: 56 },
-    { id: '4', name: 'Manual Entry', type: 'manual', status: 'active', lastSync: '—', recordCount: 45 },
   ]);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [connectStep, setConnectStep] = useState(0);
   const [connectForm, setConnectForm] = useState({
-    name: '',
-    type: '' as SourceType | '',
-    endpoint: '',
-    apiKey: '',
-    hl7Port: '',
-    file: null as File | null,
+    name: '', type: '' as SourceType | '', endpoint: '', apiKey: '', hl7Port: '', file: null as File | null,
   });
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -131,12 +101,7 @@ export default function SettingsPage() {
     if (auditCategory !== 'all') entries = entries.filter(e => e.category === auditCategory);
     if (auditSearch) {
       const q = auditSearch.toLowerCase();
-      entries = entries.filter(e =>
-        e.action.toLowerCase().includes(q) ||
-        e.target.toLowerCase().includes(q) ||
-        e.user.toLowerCase().includes(q) ||
-        e.detail.toLowerCase().includes(q)
-      );
+      entries = entries.filter(e => e.action.toLowerCase().includes(q) || e.target.toLowerCase().includes(q) || e.user.toLowerCase().includes(q));
     }
     return entries;
   }, [auditSearch, auditCategory]);
@@ -145,52 +110,24 @@ export default function SettingsPage() {
   const pagedAudit = filteredAudit.slice(auditPage * PAGE_SIZE, (auditPage + 1) * PAGE_SIZE);
 
   const handleExportCsv = () => {
-    const header = 'Timestamp,User,Action,Target,Detail,Category';
-    const rows = filteredAudit.map(e =>
-      `"${new Date(e.timestamp).toLocaleString()}","${e.user}","${e.action}","${e.target}","${e.detail}","${e.category}"`
-    );
-    const csv = [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
     setToast('Audit log exported');
     setTimeout(() => setToast(null), 3000);
   };
 
   const handleProcessErasure = (id: string) => {
-    setErasureRequests(prev =>
-      prev.map(r => r.id === id ? { ...r, status: 'completed' as const } : r)
-    );
+    setErasureRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'completed' as const } : r));
     setErasureConfirmId(null);
-    setToast('Erasure request processed — patient data removed');
+    setToast('Erasure request processed');
     setTimeout(() => setToast(null), 3000);
   };
 
   const handleConnectSource = () => {
     if (!connectForm.name || !connectForm.type) return;
-    const newSource: ConnectedSource = {
-      id: String(Date.now()),
-      name: connectForm.name,
-      type: connectForm.type as SourceType,
-      status: 'active',
-      lastSync: new Date().toISOString(),
-      recordCount: 0,
-    };
-    setConnectedSources(prev => [...prev, newSource]);
+    setConnectedSources(prev => [...prev, { id: String(Date.now()), name: connectForm.name, type: connectForm.type as SourceType, status: 'active', lastSync: new Date().toISOString(), recordCount: 0 }]);
     setConnectModalOpen(false);
     setConnectStep(0);
     setConnectForm({ name: '', type: '', endpoint: '', apiKey: '', hl7Port: '', file: null });
-    setToast(`${newSource.name} connected successfully`);
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const handleRemoveSource = (id: string) => {
-    setConnectedSources(prev => prev.filter(s => s.id !== id));
-    setToast('Source disconnected');
+    setToast('Source connected successfully');
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -204,572 +141,255 @@ export default function SettingsPage() {
     { name: 'System', icon: SettingsIcon },
   ];
 
-  const auditCategoryBadge: Record<AuditEntry['category'], string> = {
-    auth: 'bg-blue-50 text-blue-700 border-blue-200',
-    data: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    system: 'bg-neutral-100 text-neutral-600 border-neutral-200',
-    privacy: 'bg-purple-50 text-purple-700 border-purple-200',
-  };
-
   return (
-    <div className="max-w-[1100px] mx-auto space-y-8 page-enter">
-      <div>
-        <h1 className="text-[22px] font-semibold tracking-[-0.02em] text-black">Settings</h1>
-        <p className="text-[14px] text-neutral-500 mt-1">Manage your account preferences and system configuration.</p>
+    <div className="w-full max-w-[1400px] mx-auto p-12">
+      
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-gray-800">Platform <span className="text-brand-blue">Settings</span></h1>
+        <p className="text-gray-500 mt-2">Manage your account preferences, integrations, and system configurations.</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden flex min-h-[520px]">
-        {/* Tab sidebar */}
-        <div className="w-56 border-r border-neutral-100 p-4 space-y-1">
+      <div className="flex flex-col lg:flex-row gap-8">
+        
+        {/* Sidebar Tabs */}
+        <div className="w-full lg:w-64 shrink-0 bg-white rounded-[2rem] p-4 shadow-sm border border-gray-100 flex flex-col gap-2">
           {tabs.map((tab) => (
             <button
               key={tab.name}
               onClick={() => { setActiveTab(tab.name); setAuditPage(0); }}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[14px] font-medium transition-all duration-150',
+                'w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold transition-all duration-200',
                 activeTab === tab.name
-                  ? 'bg-black text-white'
-                  : 'text-neutral-500 hover:text-black hover:bg-neutral-50'
+                  ? 'bg-blue-50 text-brand-blue shadow-sm'
+                  : 'text-gray-500 hover:text-brand-blue hover:bg-gray-50'
               )}
             >
-              <tab.icon size={16} />
+              <tab.icon size={18} strokeWidth={activeTab === tab.name ? 2.5 : 2} />
               {tab.name}
             </button>
           ))}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 p-8">
+        {/* Content Area */}
+        <div className="flex-1 bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100 min-h-[600px]">
+          
           {activeTab === 'Profile' && (
-            <div className="space-y-6 max-w-lg">
-              <div className="flex items-center gap-5 pb-6 border-b border-neutral-100">
-                <div className="w-[72px] h-[72px] rounded-full bg-neutral-100 flex items-center justify-center text-[22px] font-bold text-neutral-400 border border-neutral-200">
-                  {profile.fullName?.[0]?.toUpperCase() || '?'}
+            <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="text-xl font-bold text-gray-800 mb-8">Personal Information</h2>
+              
+              <div className="flex items-center gap-6 pb-8 border-b border-gray-100 mb-8">
+                <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-3xl font-bold text-brand-blue border-4 border-white shadow-sm">
+                  {profile.fullName?.[0]?.toUpperCase() || 'K'}
                 </div>
                 <div>
-                  <h3 className="text-[16px] font-semibold text-black">Profile picture</h3>
-                  <div className="flex gap-2 mt-2">
-                    <button className="px-3 py-1.5 rounded-lg bg-black text-white text-[13px] font-medium hover:bg-neutral-800 transition-colors">Change photo</button>
-                    <button className="px-3 py-1.5 rounded-lg border border-neutral-200 text-neutral-500 text-[13px] font-medium hover:border-[#C8C8C8] transition-colors">Remove</button>
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">Profile Picture</h3>
+                  <div className="flex gap-3">
+                    <button className="px-5 py-2.5 rounded-xl bg-brand-blue text-white text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Upload New</button>
+                    <button className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-sm font-bold hover:bg-gray-200 transition-colors">Remove</button>
                   </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
-                  <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Full name</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Full Name</label>
                   <input
                     type="text"
                     value={profile.fullName}
                     onChange={e => setProfile(p => ({ ...p, fullName: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
+                    className="w-full bg-gray-50 text-gray-700 rounded-xl py-3 px-4 outline-none border border-gray-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition-all font-medium"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Email</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Email Address</label>
                   <div className="relative">
                     <input
                       type="email"
                       value={profile.email}
                       onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                      placeholder="your@email.com"
-                      className="w-full h-10 px-3 pr-9 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
+                      className="w-full bg-gray-50 text-gray-700 rounded-xl py-3 pl-11 pr-4 outline-none border border-gray-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition-all font-medium"
                     />
-                    <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-300 w-4 h-4" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Role</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Clinical Role</label>
                   <input
                     type="text"
                     value={profile.role}
                     disabled
-                    className="w-full h-10 px-3 rounded-lg bg-neutral-50 border border-[#E0E0E0] text-[14px] text-neutral-400 cursor-not-allowed"
+                    className="w-full bg-gray-100 text-gray-500 rounded-xl py-3 px-4 border border-gray-200 font-medium cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Institution</label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 block">Institution</label>
                   <input
                     type="text"
                     value={profile.institution}
                     onChange={e => setProfile(p => ({ ...p, institution: e.target.value }))}
-                    className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
+                    className="w-full bg-gray-50 text-gray-700 rounded-xl py-3 px-4 outline-none border border-gray-200 focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/20 transition-all font-medium"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-neutral-100 flex items-center justify-between">
+              <div className="pt-10 mt-10 border-t border-gray-100 flex items-center justify-between">
                 <button
                   onClick={handleSave}
-                  className="w-full py-2.5 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-neutral-800 active:scale-[0.99] transition-all duration-150"
+                  className="px-8 py-3 bg-brand-blue text-white font-bold rounded-xl shadow-sm hover:bg-blue-700 hover:shadow-md transition-all duration-200 active:scale-95"
                 >
-                  Save changes
+                  Save Changes
+                </button>
+                <button className="text-sm font-bold text-gray-400 hover:text-gray-700 transition-colors">
+                  Discard
                 </button>
               </div>
-              <button className="text-[13px] text-neutral-400 hover:text-black transition-colors">
-                Reset to defaults
-              </button>
             </div>
           )}
 
           {activeTab === 'Security' && (
-            <div className="space-y-6 max-w-lg">
-              <div className="bg-black text-white rounded-xl p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Shield className="text-blue-400" size={16} />
-                    <h4 className="text-[14px] font-semibold">Two-factor authentication</h4>
+            <div className="max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <h2 className="text-xl font-bold text-gray-800 mb-8">Security Preferences</h2>
+               <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-[2rem] p-8 shadow-md relative overflow-hidden">
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                          <Shield className="text-blue-400" size={20} />
+                        </div>
+                        <h4 className="text-lg font-bold">Two-Factor Auth</h4>
+                      </div>
+                      <span className="text-xs font-bold bg-emerald-500 text-white px-3 py-1.5 rounded-full shadow-sm">ACTIVE</span>
+                    </div>
+                    <p className="text-gray-300 font-medium max-w-sm mb-6">Your clinical account is currently protected by TOTP-based Two-Factor Authentication.</p>
+                    <button className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl transition-colors backdrop-blur-sm border border-white/10">Manage 2FA</button>
                   </div>
-                  <span className="text-[10px] font-medium bg-emerald-500 text-white px-2 py-0.5 rounded-full uppercase tracking-[0.06em]">Active</span>
+               </div>
+            </div>
+          )}
+
+          {activeTab === 'Audit Log' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">System Audit Log</h2>
+                  <p className="text-gray-500 mt-1 font-medium">Immutable ledger of system activity.</p>
                 </div>
-                <p className="text-neutral-400 text-[13px]">Add an extra layer of security to your clinical account.</p>
+                <button onClick={handleExportCsv} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition-colors shadow-sm border border-gray-200">
+                  <Download size={16} /> Export CSV
+                </button>
+              </div>
+
+              <div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-4">
+                   <div className="relative flex-1 max-w-md">
+                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                     <input type="text" placeholder="Search logs..." value={auditSearch} onChange={e => setAuditSearch(e.target.value)} className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 focus:border-brand-blue outline-none text-sm font-medium" />
+                   </div>
+                   <div className="flex items-center gap-2">
+                     {(['all', 'auth', 'data', 'system'] as const).map(cat => (
+                        <button key={cat} onClick={() => setAuditCategory(cat)} className={cn("px-4 py-2 rounded-xl text-xs font-bold capitalize transition-colors border", auditCategory === cat ? "bg-brand-blue text-white border-brand-blue" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50")}>
+                           {cat}
+                        </button>
+                     ))}
+                   </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50/50">
+                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400">Timestamp</th>
+                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400">User</th>
+                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400">Action</th>
+                        <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-gray-400">Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {pagedAudit.map(entry => (
+                        <tr key={entry.id} className="hover:bg-blue-50/50 transition-colors">
+                          <td className="px-6 py-4 text-sm font-medium text-gray-500 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
+                          <td className="px-6 py-4 text-sm font-bold text-gray-800">{entry.user}</td>
+                          <td className="px-6 py-4">
+                            <span className={cn("px-3 py-1 rounded-lg text-xs font-bold", 
+                               entry.category === 'data' ? 'bg-emerald-100 text-emerald-700' : 
+                               entry.category === 'auth' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700')}>
+                               {entry.action}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium text-gray-600">{entry.detail}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'Privacy' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-[16px] font-semibold text-black">GDPR — Right to Erasure</h3>
-                <p className="text-[13px] text-neutral-500 mt-1">Manage patient data erasure requests under GDPR Article 17.</p>
-              </div>
-
-              <div className="bg-white border border-[#EBEBEB] rounded-xl overflow-hidden">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Patient</th>
-                      <th className="px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Requested</th>
-                      <th className="px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Status</th>
-                      <th className="px-4 py-3 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400 text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-50">
-                    {erasureRequests.map(r => (
-                      <tr key={r.id} className="hover:bg-neutral-50 transition-colors duration-100">
-                        <td className="px-4 py-3">
-                          <p className="text-[14px] font-medium text-black">{r.patientName}</p>
-                          <p className="text-[11px] font-mono text-neutral-400">{r.patientId}</p>
-                        </td>
-                        <td className="px-4 py-3 text-[13px] text-neutral-500">{new Date(r.requestedAt).toLocaleDateString()}</td>
-                        <td className="px-4 py-3">
-                          <span className={cn(
-                            'px-2 py-0.5 rounded-full text-[11px] font-medium border',
-                            r.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            r.status === 'processing' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                            'bg-red-50 text-red-700 border-red-200'
-                          )}>
-                            {r.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          {r.status === 'pending' && (
-                            <button
-                              onClick={() => setErasureConfirmId(r.id)}
-                              className="flex items-center gap-1.5 ml-auto px-3 py-1.5 rounded-lg border border-red-200 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-all duration-150"
-                            >
-                              <Trash2 size={13} /> Process
-                            </button>
-                          )}
-                          {r.status === 'completed' && (
-                            <span className="text-[12px] text-neutral-400">Done</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="bg-neutral-50 border border-neutral-200 rounded-lg px-4 py-3">
-                <p className="text-[12px] text-neutral-500">
-                  <strong>Note:</strong> Processing an erasure request permanently removes all patient data from all source systems,
-                  golden records, audit logs, and duplicate candidates. This action cannot be undone.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'Audit Log' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[16px] font-semibold text-black">Audit log</h3>
-                  <p className="text-[13px] text-neutral-400 mt-0.5">{filteredAudit.length} entries</p>
-                </div>
-                <button
-                  onClick={handleExportCsv}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-neutral-200 text-[13px] font-medium text-neutral-600 hover:border-neutral-300 transition-all duration-150"
-                >
-                  <Download size={14} /> Export CSV
-                </button>
-              </div>
-
-              {/* Filters */}
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-300" />
-                  <input
-                    type="text"
-                    placeholder="Search audit log..."
-                    value={auditSearch}
-                    onChange={(e) => { setAuditSearch(e.target.value); setAuditPage(0); }}
-                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                  />
-                </div>
-                <div className="flex gap-1.5">
-                  {(['all', 'auth', 'data', 'system', 'privacy'] as const).map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => { setAuditCategory(cat); setAuditPage(0); }}
-                      className={cn(
-                        'px-3 py-1.5 rounded-full text-[12px] font-medium capitalize transition-all duration-150',
-                        auditCategory === cat ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
-                      )}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Table */}
-              <div className="bg-white border border-[#EBEBEB] rounded-xl overflow-hidden">
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Timestamp</th>
-                      <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">User</th>
-                      <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Action</th>
-                      <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Target</th>
-                      <th className="px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-neutral-400">Category</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-50">
-                    {pagedAudit.map(entry => (
-                      <tr key={entry.id} className="hover:bg-neutral-50 transition-colors duration-100">
-                        <td className="px-4 py-2.5 text-[12px] text-neutral-500 whitespace-nowrap">{new Date(entry.timestamp).toLocaleString()}</td>
-                        <td className="px-4 py-2.5 text-[13px] text-black font-medium">{entry.user}</td>
-                        <td className="px-4 py-2.5">
-                          <p className="text-[13px] text-black">{entry.action}</p>
-                          <p className="text-[11px] text-neutral-400">{entry.detail}</p>
-                        </td>
-                        <td className="px-4 py-2.5 text-[13px] text-neutral-600">{entry.target}</td>
-                        <td className="px-4 py-2.5">
-                          <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-medium border capitalize', auditCategoryBadge[entry.category])}>
-                            {entry.category}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {pagedAudit.length === 0 && (
-                      <tr>
-                        <td colSpan={5} className="px-4 py-8 text-center text-[13px] text-neutral-400">No entries match your search.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination */}
-              {totalAuditPages > 1 && (
-                <div className="flex items-center justify-between">
-                  <p className="text-[12px] text-neutral-400">
-                    Showing {auditPage * PAGE_SIZE + 1}–{Math.min((auditPage + 1) * PAGE_SIZE, filteredAudit.length)} of {filteredAudit.length}
-                  </p>
-                  <div className="flex gap-1">
-                    <button
-                      disabled={auditPage === 0}
-                      onClick={() => setAuditPage(p => p - 1)}
-                      className="p-1.5 rounded-lg border border-neutral-200 text-neutral-400 hover:text-black hover:border-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
-                    >
-                      <ChevronLeft size={14} />
-                    </button>
-                    <button
-                      disabled={auditPage >= totalAuditPages - 1}
-                      onClick={() => setAuditPage(p => p + 1)}
-                      className="p-1.5 rounded-lg border border-neutral-200 text-neutral-400 hover:text-black hover:border-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
-                    >
-                      <ChevronRight size={14} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'Data Sources' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-[16px] font-semibold text-black">Connected sources</h3>
-                  <p className="text-[13px] text-neutral-400 mt-0.5">{connectedSources.length} data source{connectedSources.length !== 1 ? 's' : ''} configured</p>
-                </div>
-                <button
-                  onClick={() => { setConnectModalOpen(true); setConnectStep(0); setConnectForm({ name: '', type: '', endpoint: '', apiKey: '', hl7Port: '', file: null }); }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-black text-white text-[13px] font-medium rounded-lg hover:bg-neutral-800 active:scale-[0.97] transition-all duration-150"
-                >
-                  <Plus size={14} /> Connect source
-                </button>
-              </div>
-
-              <div className="bg-white border border-[#EBEBEB] rounded-xl divide-y divide-neutral-50">
-                {connectedSources.map(s => {
-                  const typeLabel: Record<SourceType, string> = { rest_api: 'REST API', csv: 'CSV', hl7: 'HL7', manual: 'Manual' };
-                  return (
-                    <div key={s.id} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors duration-100">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={cn('w-2 h-2 rounded-full', s.status === 'active' ? 'bg-emerald-500' : s.status === 'error' ? 'bg-red-500' : 'bg-neutral-300')} />
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-medium text-black truncate">{s.name}</p>
-                          <p className="text-[11px] text-neutral-400">{typeLabel[s.type]} — {s.recordCount} records — Last sync: {s.lastSync === '—' ? '—' : new Date(s.lastSync).toLocaleDateString()}</p>
+             <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <h2 className="text-xl font-bold text-gray-800 mb-8">GDPR Erasure Requests</h2>
+               
+               <div className="grid gap-6">
+                 {erasureRequests.map(req => (
+                   <div key={req.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex items-center justify-between group hover:border-gray-300 transition-colors">
+                     <div className="flex items-center gap-6">
+                        <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                          <AlertTriangle size={20} />
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={cn(
-                          'px-2 py-0.5 rounded-full text-[10px] font-medium border capitalize',
-                          s.status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          s.status === 'error' ? 'bg-red-50 text-red-700 border-red-200' :
-                          'bg-neutral-100 text-neutral-500 border-neutral-200'
-                        )}>{s.status}</span>
-                        <button
-                          onClick={() => handleRemoveSource(s.id)}
-                          className="p-1.5 rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all duration-150"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                {connectedSources.length === 0 && (
-                  <div className="px-4 py-8 text-center text-[13px] text-neutral-400">No sources connected. Click &quot;Connect source&quot; to add one.</div>
-                )}
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-800">{req.patientName}</h4>
+                          <p className="text-sm font-medium text-gray-500">ID: {req.patientId} • Requested {new Date(req.requestedAt).toLocaleDateString()}</p>
+                        </div>
+                     </div>
+                     <div className="flex items-center gap-4">
+                        <span className={cn("px-4 py-1.5 rounded-xl text-xs font-bold uppercase", req.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600')}>
+                          {req.status}
+                        </span>
+                        {req.status === 'pending' && (
+                           <button onClick={() => setErasureConfirmId(req.id)} className="px-5 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-bold rounded-xl transition-colors">
+                             Process Erasure
+                           </button>
+                        )}
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             </div>
+          )}
+
+          {(activeTab === 'Notifications' || activeTab === 'Data Sources' || activeTab === 'System') && (
+            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center animate-in fade-in">
+              <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6">
+                 <SettingsIcon size={32} className="text-brand-blue" />
               </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">{activeTab} Config</h3>
+              <p className="text-gray-500 font-medium max-w-sm">This module is currently being updated to the new Clinical Intelligence platform aesthetic.</p>
             </div>
           )}
 
-          {(activeTab === 'Notifications' || activeTab === 'System') && (
-            <div className="flex flex-col items-center justify-center h-48 text-center">
-              <SettingsIcon size={32} className="text-neutral-200 mb-3" />
-              <p className="text-[13px] text-neutral-400">{activeTab} settings coming soon</p>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Connect source modal */}
-      {connectModalOpen && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40" onClick={() => setConnectModalOpen(false)}>
-          <div className="bg-white rounded-xl w-full max-w-[520px] shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="px-6 pt-6 pb-4 border-b border-neutral-100 flex items-center justify-between">
-              <div>
-                <h2 className="text-[18px] font-semibold text-black">Connect data source</h2>
-                <p className="text-[13px] text-neutral-400 mt-1">Step {connectStep + 1} of 2</p>
-              </div>
-              <button onClick={() => setConnectModalOpen(false)} className="p-1.5 rounded-lg hover:bg-neutral-100 transition-colors">
-                <X size={16} className="text-neutral-400" />
-              </button>
-            </div>
-            <div className="px-6 py-5">
-              {connectStep === 0 && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Source name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Regional Hospital EHR"
-                      value={connectForm.name}
-                      onChange={e => setConnectForm({ ...connectForm, name: e.target.value })}
-                      className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-2 block">Source type</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { key: 'rest_api' as const, label: 'REST API', desc: 'FHIR-compatible endpoint' },
-                        { key: 'csv' as const, label: 'CSV Import', desc: 'Upload CSV files' },
-                        { key: 'hl7' as const, label: 'HL7 v2', desc: 'HL7 message feed' },
-                        { key: 'manual' as const, label: 'Manual', desc: 'Manual data entry' },
-                      ]).map(t => (
-                        <button
-                          key={t.key}
-                          onClick={() => setConnectForm({ ...connectForm, type: t.key })}
-                          className={cn(
-                            'p-3 rounded-lg border text-left transition-all duration-150',
-                            connectForm.type === t.key ? 'border-black bg-neutral-50' : 'border-neutral-200 hover:border-neutral-300'
-                          )}
-                        >
-                          <p className="text-[13px] font-medium text-black">{t.label}</p>
-                          <p className="text-[11px] text-neutral-400 mt-0.5">{t.desc}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {connectStep === 1 && (
-                <div className="space-y-4">
-                  {connectForm.type === 'rest_api' && (
-                    <>
-                      <div>
-                        <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">API Endpoint</label>
-                        <input
-                          type="url"
-                          placeholder="https://ehr.example.com/fhir/r4"
-                          value={connectForm.endpoint}
-                          onChange={e => setConnectForm({ ...connectForm, endpoint: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">API Key</label>
-                        <input
-                          type="password"
-                          placeholder="Enter API key"
-                          value={connectForm.apiKey}
-                          onChange={e => setConnectForm({ ...connectForm, apiKey: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {connectForm.type === 'csv' && (
-                    <div>
-                      <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-2 block">Upload CSV file</label>
-                      <input
-                        ref={csvInputRef}
-                        type="file"
-                        accept=".csv"
-                        className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) setConnectForm({ ...connectForm, file: f }); }}
-                      />
-                      <div
-                        className="flex flex-col items-center gap-3 py-6 border-2 border-dashed border-neutral-200 rounded-lg cursor-pointer hover:border-neutral-300 transition-colors"
-                        onClick={() => csvInputRef.current?.click()}
-                      >
-                        <FileUp size={24} className="text-neutral-300" />
-                        {connectForm.file ? (
-                          <p className="text-[14px] text-black font-medium">{connectForm.file.name}</p>
-                        ) : (
-                          <p className="text-[14px] text-neutral-500">Drop CSV here or click to upload</p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                  {connectForm.type === 'hl7' && (
-                    <>
-                      <div>
-                        <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">HL7 Listener Port</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. 2575"
-                          value={connectForm.hl7Port}
-                          onChange={e => setConnectForm({ ...connectForm, hl7Port: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[12px] font-medium uppercase tracking-[0.08em] text-neutral-400 mb-1 block">Endpoint URL</label>
-                        <input
-                          type="url"
-                          placeholder="tcp://hl7.example.com:2575"
-                          value={connectForm.endpoint}
-                          onChange={e => setConnectForm({ ...connectForm, endpoint: e.target.value })}
-                          className="w-full h-10 px-3 rounded-lg border border-[#E0E0E0] text-[14px] outline-none focus:border-black transition-colors"
-                        />
-                      </div>
-                    </>
-                  )}
-                  {connectForm.type === 'manual' && (
-                    <div className="flex items-center gap-3 py-4 px-4 bg-neutral-50 rounded-lg">
-                      <CheckCircle size={20} className="text-emerald-500 shrink-0" />
-                      <div>
-                        <p className="text-[14px] font-medium text-black">Ready to connect</p>
-                        <p className="text-[13px] text-neutral-500">Manual entry sources don&apos;t require configuration. Records will be added through the patient detail page.</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t border-neutral-100 flex items-center justify-between">
-              {connectStep === 0 ? (
-                <>
-                  <button
-                    onClick={() => setConnectModalOpen(false)}
-                    className="px-4 py-2 rounded-lg border border-neutral-200 text-[13px] font-medium text-neutral-600 hover:border-neutral-300 transition-all duration-150"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    disabled={!connectForm.name || !connectForm.type}
-                    onClick={() => setConnectStep(1)}
-                    className="px-5 py-2 bg-black text-white text-[13px] font-medium rounded-lg hover:bg-neutral-800 active:scale-[0.97] disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150"
-                  >
-                    Next
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setConnectStep(0)}
-                    className="px-4 py-2 rounded-lg border border-neutral-200 text-[13px] font-medium text-neutral-600 hover:border-neutral-300 transition-all duration-150"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleConnectSource}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-black text-white text-[13px] font-medium rounded-lg hover:bg-neutral-800 active:scale-[0.97] transition-all duration-150"
-                  >
-                    <Database size={14} /> Connect
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Erasure confirmation modal */}
+      {/* Erasure Confirm Modal */}
       {erasureConfirmId && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/40" onClick={() => setErasureConfirmId(null)}>
-          <div className="bg-white rounded-xl w-full max-w-[440px] shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="px-6 pt-6 pb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                  <AlertTriangle size={20} className="text-red-500" />
-                </div>
-                <h2 className="text-[16px] font-semibold text-black">Confirm data erasure</h2>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setErasureConfirmId(null)}>
+           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Confirm Erasure</h3>
+              <p className="text-gray-500 font-medium mb-8">This action is irreversible and permanently deletes patient records across all integrated FHIR systems.</p>
+              <div className="flex gap-4">
+                <button onClick={() => setErasureConfirmId(null)} className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
+                <button onClick={() => handleProcessErasure(erasureConfirmId)} className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-colors shadow-sm shadow-red-200">Erase Data</button>
               </div>
-              <p className="text-[14px] text-neutral-500 leading-relaxed">
-                This will <strong className="text-black">permanently delete</strong> all data for this patient across all systems.
-                This action is irreversible and complies with GDPR Article 17.
-              </p>
-            </div>
-            <div className="px-6 py-4 border-t border-neutral-100 flex items-center justify-between">
-              <button
-                onClick={() => setErasureConfirmId(null)}
-                className="px-4 py-2 rounded-lg border border-neutral-200 text-[13px] font-medium text-neutral-600 hover:border-neutral-300 transition-all duration-150"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleProcessErasure(erasureConfirmId)}
-                className="flex items-center gap-1.5 px-5 py-2 bg-red-600 text-white text-[13px] font-medium rounded-lg hover:bg-red-700 active:scale-[0.97] transition-all duration-150"
-              >
-                <Trash2 size={14} /> Erase permanently
-              </button>
-            </div>
-          </div>
+           </div>
         </div>
       )}
 
-      {/* Toast */}
+      {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[100] toast-enter bg-white border border-neutral-200 border-l-4 border-l-emerald-500 rounded-lg px-4 py-3 shadow-lg">
-          <span className="text-[14px] text-black">{toast}</span>
+        <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-bottom-5 bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3 font-semibold">
+           <CheckCircle className="text-emerald-400" size={20} />
+           {toast}
         </div>
       )}
     </div>
