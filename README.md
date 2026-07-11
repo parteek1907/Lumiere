@@ -9,7 +9,7 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-06B6D4?style=flat-square\&logo=tailwindcss\&logoColor=white)
 ![AI/ML](https://img.shields.io/badge/AI%2FML-Hybrid%20Matching-8B5CF6?style=flat-square)
 
-**An AI-powered healthcare identity resolution prototype designed to detect and prevent duplicate patient records using hybrid matching, confidence-based scoring, and privacy-preserving workflows.**
+**An AI-powered patient identity resolution platform that intelligently detects, prevents, and resolves duplicate medical records through hybrid matching, confidence-based decisioning, and privacy-first data processing.**
 
 </div>
 
